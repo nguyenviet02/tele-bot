@@ -1,20 +1,8 @@
-Pizza
-Burger
-Sushi
-Pasta
-Salad
-Ramen
-Pho
-Tacos
-Curry
-Steak
-Fried Rice
-Sandwich
-Chicken Wings
-Fish and Chips
-Pad Thai
-Bibimbap
-Hot Pot
-BBQ Ribs
-Mac and Cheese
-Ice Cream 
+Combo 3
+Gà viên
+Cơm rang
+Cơm thịt chiên
+Cơm tấm
+Bún trộn
+Bún bò huế
+Bún chả
