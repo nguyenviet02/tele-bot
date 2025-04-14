@@ -218,4 +218,39 @@ def clear_debt(username: str, file_path: str) -> None:
     
     if username in debts:
         debts[username] = 0
-        save_debts(debts, file_path) 
+        save_debts(debts, file_path)
+
+
+def add_food_to_list(food: str, file_path: str) -> bool:
+    """
+    Add a new food item to the food list.
+    
+    Args:
+        food: The food item to add
+        file_path: Path to the food list file
+        
+    Returns:
+        True if food was added successfully, False otherwise
+    """
+    try:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # Check if the food already exists in the list
+        existing_foods = load_food_list(file_path)
+        food = food.strip()
+        
+        if food in existing_foods:
+            logger.info(f"Food '{food}' already exists in the list")
+            return False
+        
+        # Append the new food to the file
+        with open(file_path, 'a', encoding='utf-8') as f:
+            f.write(f"\n{food}")
+        
+        logger.info(f"Added new food '{food}' to the list")
+        return True
+    
+    except Exception as e:
+        logger.error(f"Error adding food to list: {str(e)}")
+        return False 

@@ -14,7 +14,14 @@ from telegram.ext import (
 )
 
 from config import TOKEN, FOOD_LIST_PATH, DEBT_DB_PATH
-from utils import get_random_food, add_debt, get_debt, clear_debt, clear_food_cache
+from utils import (
+    get_random_food,
+    add_debt,
+    get_debt,
+    clear_debt,
+    clear_food_cache,
+    add_food_to_list
+)
 
 # Enable logging
 logging.basicConfig(
@@ -39,6 +46,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f'/food - Get a random food suggestion\n'
         f'/newfood - Force a new food suggestion\n'
         f'/clearfood - Clear current food suggestion\n'
+        f'/addfood - Add a new food to the list\n'
         f'/debt username - Check debt for a user\n'
         f'/done username - Clear debt for a user\n\n'
         f'You can also tag a user with an amount (e.g. @username 100) to add to their debt.'
@@ -71,6 +79,25 @@ async def clearfood_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     """Clear the current food suggestion when the command /clearfood is issued."""
     clear_food_cache()
     await update.message.reply_text('Food suggestion cleared! Use /food or /newfood to get a new suggestion.')
+
+
+async def addfood_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Add a new food to the food list when the command /addfood is issued."""
+    # Check if a food item was provided
+    if not context.args or len(context.args) < 1:
+        await update.message.reply_text('Please specify a food to add, e.g. /addfood "Fried Rice"')
+        return
+    
+    # Join all args to support food names with spaces
+    food_item = ' '.join(context.args)
+    
+    # Add the food to the list
+    success = add_food_to_list(food_item, FOOD_LIST_PATH_ABS)
+    
+    if success:
+        await update.message.reply_text(f'Added "{food_item}" to the food list!')
+    else:
+        await update.message.reply_text(f'"{food_item}" already exists in the food list or could not be added.')
 
 
 async def debt_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -152,6 +179,7 @@ def main() -> None:
     application.add_handler(CommandHandler("food", food_command))
     application.add_handler(CommandHandler("newfood", newfood_command))
     application.add_handler(CommandHandler("clearfood", clearfood_command))
+    application.add_handler(CommandHandler("addfood", addfood_command))
     application.add_handler(CommandHandler("debt", debt_command))
     application.add_handler(CommandHandler("done", done_command))
     
