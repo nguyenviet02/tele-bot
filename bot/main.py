@@ -20,7 +20,9 @@ from utils import (
     get_debt,
     clear_debt,
     clear_food_cache,
-    add_food_to_list
+    add_food_to_list,
+    remove_food_from_list,
+    get_all_foods
 )
 
 # Enable logging
@@ -47,8 +49,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f'/newfood - Force a new food suggestion\n'
         f'/clearfood - Clear current food suggestion\n'
         f'/addfood - Add a new food to the list\n'
+        f'/removefood - Remove a food from the list\n'
+        f'/foodlist - Show all foods in the list\n'
         f'/debt username - Check debt for a user\n'
-        f'/done username - Clear debt for a user\n\n'
+        f'/done username - Clear debt for a user\n'
+        f'/help - Show all available commands\n\n'
         f'You can also tag a user with an amount (e.g. @username 100) to add to their debt.'
     )
 
@@ -98,6 +103,55 @@ async def addfood_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text(f'Added "{food_item}" to the food list!')
     else:
         await update.message.reply_text(f'"{food_item}" already exists in the food list or could not be added.')
+
+
+async def removefood_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Remove a food from the food list when the command /removefood is issued."""
+    # Check if a food item was provided
+    if not context.args or len(context.args) < 1:
+        await update.message.reply_text('Please specify a food to remove, e.g. /removefood "Fried Rice"')
+        return
+    
+    # Join all args to support food names with spaces
+    food_item = ' '.join(context.args)
+    
+    # Remove the food from the list
+    success, message = remove_food_from_list(food_item, FOOD_LIST_PATH_ABS)
+    
+    await update.message.reply_text(message)
+
+
+async def foodlist_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show all foods in the list when the command /foodlist is issued."""
+    # Get all foods with numbered format
+    _, formatted_text = get_all_foods(FOOD_LIST_PATH_ABS, numbered=True)
+    
+    # Telegram has a message limit, so we might need to chunk it
+    if len(formatted_text) > 4000:
+        chunks = [formatted_text[i:i+4000] for i in range(0, len(formatted_text), 4000)]
+        for i, chunk in enumerate(chunks):
+            header = f"🍽️ Food List (Part {i+1}/{len(chunks)}):\n\n" if i == 0 else ""
+            await update.message.reply_text(f"{header}{chunk}")
+    else:
+        await update.message.reply_text(f"🍽️ Food List:\n\n{formatted_text}")
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show help information when the command /help is issued."""
+    # This is essentially the same as start but without the greeting
+    await update.message.reply_text(
+        f'Commands:\n'
+        f'/food - Get a random food suggestion\n'
+        f'/newfood - Force a new food suggestion\n'
+        f'/clearfood - Clear current food suggestion\n'
+        f'/addfood - Add a new food to the list\n'
+        f'/removefood - Remove a food from the list\n'
+        f'/foodlist - Show all foods in the list\n'
+        f'/debt username - Check debt for a user\n'
+        f'/done username - Clear debt for a user\n'
+        f'/help - Show all available commands\n\n'
+        f'You can also tag a user with an amount (e.g. @username 100) to add to their debt.'
+    )
 
 
 async def debt_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -176,10 +230,13 @@ def main() -> None:
     
     # Register command handlers
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("food", food_command))
     application.add_handler(CommandHandler("newfood", newfood_command))
     application.add_handler(CommandHandler("clearfood", clearfood_command))
     application.add_handler(CommandHandler("addfood", addfood_command))
+    application.add_handler(CommandHandler("removefood", removefood_command))
+    application.add_handler(CommandHandler("foodlist", foodlist_command))
     application.add_handler(CommandHandler("debt", debt_command))
     application.add_handler(CommandHandler("done", done_command))
     

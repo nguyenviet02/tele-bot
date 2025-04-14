@@ -2,7 +2,7 @@ import json
 import os
 import random
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -253,4 +253,94 @@ def add_food_to_list(food: str, file_path: str) -> bool:
     
     except Exception as e:
         logger.error(f"Error adding food to list: {str(e)}")
-        return False 
+        return False
+
+
+def remove_food_from_list(food: str, file_path: str) -> Tuple[bool, str]:
+    """
+    Remove a food item from the food list.
+    
+    Args:
+        food: The food item to remove
+        file_path: Path to the food list file
+        
+    Returns:
+        Tuple of (success, message) where success is True if food was removed 
+        successfully, and message contains additional information
+    """
+    try:
+        # Load existing foods
+        existing_foods = load_food_list(file_path)
+        
+        if not existing_foods:
+            return False, "Food list is empty"
+        
+        food = food.strip()
+        # Case insensitive search
+        food_lower = food.lower()
+        
+        # Find potential matches
+        matches = [f for f in existing_foods if f.lower() == food_lower]
+        
+        if not matches:
+            # Try to find if it's a partial match
+            partial_matches = [f for f in existing_foods if food_lower in f.lower()]
+            if partial_matches:
+                # Return the matches so the user can be more specific
+                match_str = ", ".join([f"'{m}'" for m in partial_matches[:5]])
+                return False, f"Food '{food}' not found exactly. Did you mean one of: {match_str}" + \
+                       (f" (and {len(partial_matches) - 5} more)" if len(partial_matches) > 5 else "")
+            return False, f"Food '{food}' not found in the list"
+        
+        # Remove the exact match
+        updated_foods = [f for f in existing_foods if f.lower() != food_lower]
+        
+        # Write back to file
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write("\n".join(updated_foods))
+        
+        # If we've removed the current food cache, clear it
+        cache = load_food_cache()
+        if cache and any(match.lower() == cache.get('food', '').lower() for match in matches):
+            clear_food_cache()
+            logger.info(f"Cleared food cache as removed food was currently cached")
+        
+        logger.info(f"Removed food '{matches[0]}' from the list")
+        
+        if len(matches) > 1:
+            return True, f"Removed {len(matches)} items matching '{food}'"
+        return True, f"Removed '{matches[0]}' from the food list"
+    
+    except Exception as e:
+        logger.error(f"Error removing food from list: {str(e)}")
+        return False, f"Error removing food: {str(e)}"
+
+
+def get_all_foods(file_path: str, numbered: bool = False) -> Tuple[List[str], str]:
+    """
+    Get all foods from the food list with optional formatting.
+    
+    Args:
+        file_path: Path to the food list file
+        numbered: If True, return a numbered list
+        
+    Returns:
+        Tuple of (list of foods, formatted text)
+    """
+    foods = load_food_list(file_path)
+    
+    if not foods:
+        return [], "No foods available in the list."
+    
+    # Sort alphabetically for better readability
+    foods.sort()
+    
+    if numbered:
+        # Create a numbered list
+        formatted_text = "\n".join([f"{i+1}. {food}" for i, food in enumerate(foods)])
+    else:
+        # Create a bullet list
+        formatted_text = "\n".join([f"• {food}" for food in foods])
+    
+    return foods, formatted_text 
