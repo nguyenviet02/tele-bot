@@ -22,7 +22,9 @@ from utils import (
     clear_food_cache,
     add_food_to_list,
     remove_food_from_list,
-    get_all_foods
+    get_all_foods,
+    is_restricted_user,
+    check_command_restriction
 )
 
 # Enable logging
@@ -43,7 +45,28 @@ DEBT_DB_PATH_ABS = os.path.join(BASE_DIR, DEBT_DB_PATH)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
+    # Debug information
+    logger.info(f"Start command triggered - update: {update}")
+    logger.info(f"Message from chat ID: {update.message.chat_id}")
+    logger.info(f"Message from user ID: {update.message.from_user.id}")
+    
     user = update.effective_user
+    logger.info(f"Effective user: {user}")
+    
+    # Check if username exists and log it
+    if user:
+        logger.info(f"Username: {user.username}, First name: {user.first_name}")
+    
+    # This is the key issue - let's check for None or empty username explicitly
+    if user and not user.username:
+        logger.warning("User has no username - cannot check restrictions")
+    
+    # Check if the user is restricted - only check if user has a username
+    if user and user.username:
+        # Check restriction only if username exists
+        if await check_command_restriction(update, user.username):
+            return
+    
     await update.message.reply_text(
         f'Hi {user.first_name}! I am your Food and Debt Tracker Bot.\n\n'
         f'Commands:\n'
@@ -62,6 +85,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def food_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a random food suggestion when the command /food is issued."""
+    # Check if the user is restricted
+    user = update.effective_user
+    logger.info(f"Food command called by user: {user}")
+    
+    if user:
+        logger.info(f"User ID: {user.id}, Username: {user.username}, First Name: {user.first_name}")
+    else:
+        logger.info("User object is None")
+    
+    # Check if the user is restricted - only check if user has a username
+    if user and user.username:
+        # Check restriction only if username exists
+        if await check_command_restriction(update, user.username):
+            return
+    
     logger.info(f"Food list path: {FOOD_LIST_PATH_ABS}")
     food = get_random_food(FOOD_LIST_PATH_ABS)
     
@@ -73,6 +111,15 @@ async def food_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def newfood_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Force a new random food suggestion when the command /newfood is issued."""
+    # Check if the user is restricted
+    user = update.effective_user
+    
+    # Check if the user is restricted - only check if user has a username
+    if user and user.username:
+        # Check restriction only if username exists
+        if await check_command_restriction(update, user.username):
+            return
+    
     logger.info(f"Food list path: {FOOD_LIST_PATH_ABS}")
     food = get_random_food(FOOD_LIST_PATH_ABS, force_new=True)
     
@@ -84,12 +131,30 @@ async def newfood_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def clearfood_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Clear the current food suggestion when the command /clearfood is issued."""
+    # Check if the user is restricted
+    user = update.effective_user
+    
+    # Check if the user is restricted - only check if user has a username
+    if user and user.username:
+        # Check restriction only if username exists
+        if await check_command_restriction(update, user.username):
+            return
+    
     clear_food_cache()
     await update.message.reply_text('Food suggestion cleared! Use /food or /newfood to get a new suggestion.')
 
 
 async def addfood_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Add a new food to the food list when the command /addfood is issued."""
+    # Check if the user is restricted
+    user = update.effective_user
+    
+    # Check if the user is restricted - only check if user has a username
+    if user and user.username:
+        # Check restriction only if username exists
+        if await check_command_restriction(update, user.username):
+            return
+    
     # Check if a food item was provided
     if not context.args or len(context.args) < 1:
         await update.message.reply_text('Please specify a food to add, e.g. /addfood "Fried Rice"')
@@ -109,6 +174,15 @@ async def addfood_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def removefood_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Remove a food from the food list when the command /removefood is issued."""
+    # Check if the user is restricted
+    user = update.effective_user
+    
+    # Check if the user is restricted - only check if user has a username
+    if user and user.username:
+        # Check restriction only if username exists
+        if await check_command_restriction(update, user.username):
+            return
+    
     # Check if a food item was provided
     if not context.args or len(context.args) < 1:
         await update.message.reply_text('Please specify a food to remove, e.g. /removefood "Fried Rice"')
@@ -125,6 +199,15 @@ async def removefood_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def foodlist_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show all foods in the list when the command /foodlist is issued."""
+    # Check if the user is restricted
+    user = update.effective_user
+    
+    # Check if the user is restricted - only check if user has a username
+    if user and user.username:
+        # Check restriction only if username exists
+        if await check_command_restriction(update, user.username):
+            return
+    
     # Get all foods with numbered format
     _, formatted_text = get_all_foods(FOOD_LIST_PATH_ABS, numbered=True)
     
@@ -140,6 +223,15 @@ async def foodlist_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show help information when the command /help is issued."""
+    # Check if the user is restricted
+    user = update.effective_user
+    
+    # Check if the user is restricted - only check if user has a username
+    if user and user.username:
+        # Check restriction only if username exists
+        if await check_command_restriction(update, user.username):
+            return
+    
     # This is essentially the same as start but without the greeting
     await update.message.reply_text(
         f'Commands:\n'
@@ -158,6 +250,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def debt_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show debt for a user when the command /debt is issued."""
+    # Check if the user is restricted
+    user = update.effective_user
+    
+    # Check if the user is restricted - only check if user has a username
+    if user and user.username:
+        # Check restriction only if username exists
+        if await check_command_restriction(update, user.username):
+            return
+    
     # Check if a username was provided
     if not context.args or len(context.args) < 1:
         await update.message.reply_text('Please specify a username, e.g. /debt username')
@@ -176,6 +277,15 @@ async def debt_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def done_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Clear debt for a user when the command /done is issued."""
+    # Check if the user is restricted
+    user = update.effective_user
+    
+    # Check if the user is restricted - only check if user has a username
+    if user and user.username:
+        # Check restriction only if username exists
+        if await check_command_restriction(update, user.username):
+            return
+    
     # Check if a username was provided
     if not context.args or len(context.args) < 1:
         await update.message.reply_text('Please specify a username, e.g. /done username')
@@ -200,6 +310,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not update.message or not update.message.text:
         return
     
+    # Log message info
+    user = update.effective_user
+    if user:
+        logger.info(f"Regular message from user ID: {user.id}, Username: {user.username}, Text: {update.message.text[:20]}...")
+    
+    # We don't check general restriction for regular messages as users should be able to chat
+    # But we do check if the user is restricted when they try to add debt
     text = update.message.text
     
     # Look for pattern @username 100
@@ -207,8 +324,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     pattern = r'@(\w+)\s+(-?\d+(\.\d+)?)'
     matches = re.findall(pattern, text)
     
+    if matches and user and user.username:
+        # If the user is trying to add debt, check if they're restricted
+        if is_restricted_user(user.username):
+            logger.info(f"Restricted user {user.username} tried to add debt")
+            await update.message.reply_text("Bạn cần nạp VIP để thực hiện lệnh này")
+            return
+    
     for match in matches:
         username = match[0]
+        logger.info(f"Found debt message for username: {username}")
         try:
             amount = float(match[1])
             # Add to user's debt

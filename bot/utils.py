@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 # Constants
 FOOD_CACHE_FILE = "data/food_cache.json"
 CACHE_DURATION = timedelta(hours=12)
+# List of restricted usernames - users in this list will receive a VIP message
+# when attempting to use any bot commands
+RESTRICTED_USERS = ["phuongtung99"]
 
 def load_food_cache() -> Dict:
     """
@@ -343,4 +346,58 @@ def get_all_foods(file_path: str, numbered: bool = False) -> Tuple[List[str], st
         # Create a bullet list
         formatted_text = "\n".join([f"• {food}" for food in foods])
     
-    return foods, formatted_text 
+    return foods, formatted_text
+
+
+def is_restricted_user(username: str) -> bool:
+    """
+    Check if a username is in the restricted list.
+    
+    Args:
+        username: Username to check (with or without @ symbol)
+        
+    Returns:
+        True if the user is restricted, False otherwise
+    """
+    # Remove @ symbol if present
+    if username.startswith('@'):
+        username = username[1:]
+    
+    # Convert to lowercase for case-insensitive comparison
+    username_lower = username.lower()
+    
+    # Log the check
+    logger.info(f"Checking if user '{username}' is in restricted list: {RESTRICTED_USERS}")
+    logger.info(f"Lowercase username for comparison: '{username_lower}'")
+    
+    # Log each individual comparison
+    for restricted_user in RESTRICTED_USERS:
+        restricted_user_lower = restricted_user.lower()
+        is_match = username_lower == restricted_user_lower
+        logger.info(f"Comparing '{username_lower}' with restricted user '{restricted_user_lower}': Match = {is_match}")
+    
+    # Check against the restricted usernames list
+    result = username_lower in [user.lower() for user in RESTRICTED_USERS]
+    logger.info(f"Final result of restriction check for '{username}': {result}")
+    return result
+
+
+async def check_command_restriction(update, username: str) -> bool:
+    """
+    Check if a user is restricted from using commands and send a message if they are.
+    This should only be called when processing command handlers, not regular messages.
+    
+    Args:
+        update: The telegram update object
+        username: Username to check
+        
+    Returns:
+        True if the user is restricted, False otherwise
+    """
+    logger.info(f"Checking command restriction for user: {username}")
+    if is_restricted_user(username):
+        logger.info(f"User {username} is restricted, sending VIP message")
+        await update.message.reply_text("Bạn cần nạp VIP để thực hiện lệnh này")
+        return True
+    logger.info(f"User {username} is not restricted")
+    return False 
